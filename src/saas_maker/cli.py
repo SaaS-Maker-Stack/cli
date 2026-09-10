@@ -86,7 +86,7 @@ def new(
         )
         typer.echo("")
         typer.echo("Teach your coding agent to extend this project:")
-        typer.echo("  npx skills add willywg/saas-maker-skills --skill '*'")
+        typer.echo("  npx skills add SaaS-Maker-Stack/skills --skill '*'")
     except Exception as exc:
         if isinstance(exc, typer.Exit):
             raise

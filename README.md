@@ -1,7 +1,7 @@
 # saas-maker CLI
 
 `uvx saas-maker new <name>` scaffolds a configured multi-tenant SaaS from the
-[saas-maker](https://github.com/willywg/saas-maker) template (FastAPI + SQLModel
+[saas-maker](https://github.com/SaaS-Maker-Stack/saas-maker) template (FastAPI + SQLModel
 + PostgreSQL backend, React 19 + Vite + shadcn/ui frontend, admin panel, Kamal
 deploys). `saas-maker generate module <name>` adds a tenant-scoped CRUD — table,
 API, page, sidebar entry and tests — to a generated project.

@@ -3,7 +3,7 @@
 The **project generator**: `uvx saas-maker new <name>` scaffolds a configured
 multi-tenant SaaS from the saas-maker template; `saas-maker generate module
 <name>` scaffolds a tenant-scoped CRUD (backend + frontend) inside it.
-Part of [willywg/saas-maker](https://github.com/willywg/saas-maker).
+Part of [willywg/saas-maker](https://github.com/SaaS-Maker-Stack/saas-maker).
 
 ## Stack & structure
 

@@ -5,7 +5,7 @@ vX.Y.Z. `saas-maker new --ref <branch|tag>` overrides it for development
 against unreleased branches.
 """
 
-ORG = "willywg"
+ORG = "SaaS-Maker-Stack"
 
 # Template ref this CLI release scaffolds. Bumped together with the CLI version.
 STACK_REF = "main"

@@ -94,7 +94,7 @@ def render_registry_secrets(a: Answers) -> str:
 def render_readme(a: Answers, ref: str) -> str:
     return f"""# {a.name}
 
-Multi-tenant SaaS generated with [saas-maker](https://github.com/willywg/saas-maker)
+Multi-tenant SaaS generated with [saas-maker](https://github.com/SaaS-Maker-Stack/saas-maker)
 (`saas-maker new`, template `{ref}`).
 
 | Path | Service | Run |
