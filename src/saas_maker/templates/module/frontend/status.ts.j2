@@ -1,0 +1,9 @@
+import type { {{ n.camel }}Status } from '@/types/api';
+
+export const {{ n.lower_camel }}StatusLabels: Record<{{ n.camel }}Status, string> = {
+{% for v in status.values %}
+  {{ v.value }}: '{{ v.label }}',
+{% endfor %}
+};
+
+export const {{ n.lower_camel }}Statuses = Object.keys({{ n.lower_camel }}StatusLabels) as {{ n.camel }}Status[];

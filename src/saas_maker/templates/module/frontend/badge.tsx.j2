@@ -1,0 +1,24 @@
+import { cn } from '@/lib/utils';
+import { {{ n.lower_camel }}StatusLabels } from './status';
+import type { {{ n.camel }}Status } from '@/types/api';
+
+// DESIGN.md → Badges: soft semantic tint (10% background), full-strength text, 6px dot.
+const statusStyles: Record<{{ n.camel }}Status, string> = {
+{% for v in status.values %}
+  {{ v.value }}: '{{ status.badge_style(loop.index0) }}',
+{% endfor %}
+};
+
+export function {{ n.camel }}StatusBadge({ status }: { status: {{ n.camel }}Status }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium',
+        statusStyles[status]
+      )}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+      {{ '{' }}{{ n.lower_camel }}StatusLabels[status]}
+    </span>
+  );
+}

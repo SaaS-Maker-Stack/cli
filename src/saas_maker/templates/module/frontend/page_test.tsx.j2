@@ -1,0 +1,112 @@
+import { {{ 'fireEvent, ' if needs_fire_event else '' }}screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '@/test/render';
+import { {{ n.camel_plural }}Page } from './{{ n.camel_plural }}Page';
+import type { {{ n.camel }}Response } from '@/types/api';
+
+const mockUser = vi.fn();
+const mockItems = vi.fn();
+const create{{ n.camel }} = vi.fn().mockResolvedValue({});
+const delete{{ n.camel }} = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: mockUser() }),
+}));
+vi.mock('@/hooks/use{{ n.camel_plural }}', () => ({
+  use{{ n.camel_plural }}: () => ({
+    {{ n.lower_camel_plural }}: mockItems(),
+    total: mockItems().length,
+    page: 1,
+    pageSize: 20,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    create{{ n.camel }},
+    isCreating: false,
+    update{{ n.camel }}: vi.fn(),
+    isUpdating: false,
+    delete{{ n.camel }},
+    isDeleting: false,
+  }),
+}));
+
+const owner = { organization_name: 'Acme Corp', role: 'owner' };
+const member = { organization_name: 'Acme Corp', role: 'member' };
+
+const item: {{ n.camel }}Response = {
+  id: 'p1',
+{% for f in fields %}
+  {{ f.name }}: {{ f.ts_sample }},
+{% endfor %}
+{% if status %}
+  status: '{{ status.default }}',
+{% endif %}
+  created_by: 'u1',
+  created_at: '2026-09-10T10:00:00',
+  updated_at: '2026-09-10T10:00:00',
+};
+
+describe('{{ n.camel_plural }}Page', () => {
+  beforeEach(() => {
+    mockUser.mockReturnValue(owner);
+    mockItems.mockReturnValue([item]);
+    vi.clearAllMocks();
+  });
+
+  it('lists the items', () => {
+    renderWithProviders(<{{ n.camel_plural }}Page />, { route: '{{ n.api_prefix }}' });
+    expect(screen.getByRole('heading', { name: '{{ n.label_plural }}' })).toBeInTheDocument();
+    expect(screen.getByText({{ title.ts_sample }})).toBeInTheDocument();
+{% if status %}
+    expect(screen.getByText('{{ status.values[0].label }}')).toBeInTheDocument();
+{% endif %}
+  });
+
+  it('shows the empty state with a call to action for admins', () => {
+    mockItems.mockReturnValue([]);
+    renderWithProviders(<{{ n.camel_plural }}Page />, { route: '{{ n.api_prefix }}' });
+    expect(screen.getByText('Aún no hay {{ n.label_plural_lower }}')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /{{ n.new_word|lower }} {{ n.label_lower }}/i })).toHaveLength(2);
+  });
+
+  it('hides write actions from members', () => {
+    mockUser.mockReturnValue(member);
+    renderWithProviders(<{{ n.camel_plural }}Page />, { route: '{{ n.api_prefix }}' });
+    expect(screen.getByText({{ title.ts_sample }})).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /{{ n.new_word|lower }} {{ n.label_lower }}/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /acciones de/i })).not.toBeInTheDocument();
+  });
+
+  it('creates an item from the dialog', async () => {
+    renderWithProviders(<{{ n.camel_plural }}Page />, { route: '{{ n.api_prefix }}' });
+    await userEvent.click(screen.getByRole('button', { name: /{{ n.new_word|lower }} {{ n.label_lower }}/i }));
+    await userEvent.type(screen.getByLabelText('{{ title.label }}'), 'App móvil');
+{% for f in required_extra %}
+{% if f.test_uses_type %}
+    await userEvent.type(screen.getByLabelText('{{ f.label }}'), '{{ f.test_typed }}');
+{% else %}
+    fireEvent.change(screen.getByLabelText('{{ f.label }}'), { target: { value: '{{ f.test_typed }}' } });
+{% endif %}
+{% endfor %}
+    await userEvent.click(screen.getByRole('button', { name: 'Crear {{ n.label_lower }}' }));
+    expect(create{{ n.camel }}).toHaveBeenCalledWith({
+      {{ title.name }}: 'App móvil',
+{% for f in fields[1:] %}
+      {{ f.name }}: {{ f.test_expected }},
+{% endfor %}
+{% if status %}
+      status: '{{ status.default }}',
+{% endif %}
+    });
+  });
+
+  it('asks for confirmation before deleting', async () => {
+    renderWithProviders(<{{ n.camel_plural }}Page />, { route: '{{ n.api_prefix }}' });
+    await userEvent.click(screen.getByRole('button', { name: `Acciones de ${item.{{ title.name }}}` }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /eliminar/i }));
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    expect(delete{{ n.camel }}).toHaveBeenCalledWith('p1');
+  });
+});

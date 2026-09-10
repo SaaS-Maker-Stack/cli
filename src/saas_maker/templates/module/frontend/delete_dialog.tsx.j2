@@ -1,0 +1,59 @@
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { use{{ n.camel_plural }} } from '@/hooks/use{{ n.camel_plural }}';
+import type { {{ n.camel }}Response } from '@/types/api';
+
+interface Delete{{ n.camel }}DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  item: {{ n.camel }}Response | null;
+}
+
+export function Delete{{ n.camel }}Dialog({ open, onOpenChange, item }: Delete{{ n.camel }}DialogProps) {
+  const { delete{{ n.camel }}, isDeleting } = use{{ n.camel_plural }}();
+
+  const handleConfirm = async () => {
+    if (!item) return;
+    try {
+      await delete{{ n.camel }}(item.id);
+      toast.success('{{ n.label }} {{ n.deleted_word }}');
+      onOpenChange(false);
+    } catch {
+      toast.error('No se pudo eliminar {{ n.article }} {{ n.label_lower }}');
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Eliminar {{ n.label_lower }}</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará{' '}
+            <span className="font-medium text-foreground">{item?.{{ title.name }}}</span> para toda la
+            organización. Esta acción no se puede deshacer.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirm}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? 'Eliminando...' : 'Eliminar'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

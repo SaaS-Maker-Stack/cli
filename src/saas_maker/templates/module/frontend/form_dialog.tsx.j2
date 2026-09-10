@@ -1,0 +1,215 @@
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+{% if has_checkbox %}
+import { Checkbox } from '@/components/ui/checkbox';
+{% endif %}
+{% if has_input %}
+import { Input } from '@/components/ui/input';
+{% endif %}
+{% if has_textarea %}
+import { Textarea } from '@/components/ui/textarea';
+{% endif %}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+{% if status %}
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+{% endif %}
+import { use{{ n.camel_plural }} } from '@/hooks/use{{ n.camel_plural }}';
+{% if status %}
+import { {{ n.lower_camel }}StatusLabels, {{ n.lower_camel }}Statuses } from './status';
+{% endif %}
+import type { {{ n.camel }}Create, {{ n.camel }}Response } from '@/types/api';
+
+const formSchema = z.object({
+{% for f in fields %}
+  {{ f.name }}: {{ f.zod }},
+{% endfor %}
+{% if status %}
+  status: z.enum([{{ status.ts_enum }}]),
+{% endif %}
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+const emptyValues: FormData = {
+{% for f in fields %}
+  {{ f.name }}: {{ f.form_empty }},
+{% endfor %}
+{% if status %}
+  status: '{{ status.default }}',
+{% endif %}
+};
+
+function toFormValues(item: {{ n.camel }}Response): FormData {
+  return {
+{% for f in fields %}
+    {{ f.name }}: {{ f.to_form_expr('item') }},
+{% endfor %}
+{% if status %}
+    status: item.status,
+{% endif %}
+  };
+}
+
+function toPayload(data: FormData): {{ n.camel }}Create {
+  return {
+{% for f in fields %}
+    {{ f.name }}: {{ f.to_payload_expr('data') }},
+{% endfor %}
+{% if status %}
+    status: data.status,
+{% endif %}
+  };
+}
+
+interface {{ n.camel }}FormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** When set, the dialog edits this item; otherwise it creates one. */
+  item: {{ n.camel }}Response | null;
+}
+
+export function {{ n.camel }}FormDialog({ open, onOpenChange, item }: {{ n.camel }}FormDialogProps) {
+  const { create{{ n.camel }}, isCreating, update{{ n.camel }}, isUpdating } = use{{ n.camel_plural }}();
+  const isEditing = item !== null;
+  const isSaving = isCreating || isUpdating;
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: emptyValues,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    form.reset(item ? toFormValues(item) : emptyValues);
+  }, [open, item, form]);
+
+  const handleSubmit = async (data: FormData) => {
+    const payload = toPayload(data);
+    try {
+      if (item) {
+        await update{{ n.camel }}({ id: item.id, data: payload });
+        toast.success('{{ n.label }} {{ n.updated_word }}');
+      } else {
+        await create{{ n.camel }}(payload);
+        toast.success('{{ n.label }} {{ n.created_word }}');
+      }
+      onOpenChange(false);
+    } catch {
+      toast.error(
+        isEditing ? 'No se pudo actualizar {{ n.article }} {{ n.label_lower }}' : 'No se pudo crear {{ n.article }} {{ n.label_lower }}'
+      );
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? 'Editar {{ n.label_lower }}' : '{{ n.new_word }} {{ n.label_lower }}'}</DialogTitle>
+          <DialogDescription>
+            {isEditing
+              ? 'Cambia los datos y guarda.'
+              : '{{ n.article_plural|capitalize }} {{ n.label_plural_lower }} solo son visibles para tu organización.'}
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+{% for f in fields %}
+{% if f.kind == 'bool' %}
+            <FormField
+              control={form.control}
+              name="{{ f.name }}"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel className="font-normal">{{ f.label }}</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{% else %}
+            <FormField
+              control={form.control}
+              name="{{ f.name }}"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{{ f.label }}</FormLabel>
+                  <FormControl>
+                    {{ f.input_jsx }}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{% endif %}
+{% endfor %}
+{% if status %}
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estado</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un estado" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {{ '{' }}{{ n.lower_camel }}Statuses.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {{ '{' }}{{ n.lower_camel }}StatusLabels[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{% endif %}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? 'Guardar cambios' : 'Crear {{ n.label_lower }}'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

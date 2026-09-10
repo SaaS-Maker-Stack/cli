@@ -1,0 +1,55 @@
+[project]
+name = "saas-maker"
+version = "0.1.0"
+description = "SaaS Maker generator — `uvx saas-maker new <name>`: a multi-tenant SaaS (FastAPI + React) in one command, plus `generate module` for tenant-scoped CRUDs"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "William Wong Garay", email = "willywg@gmail.com" }]
+requires-python = ">=3.11"
+keywords = ["saas", "multi-tenant", "fastapi", "react", "scaffold", "generator"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+    "typer>=0.15",
+    "questionary>=2.0",
+    "httpx>=0.27",
+    "jinja2>=3.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/willywg/saas-maker"
+Repository = "https://github.com/willywg/saas-maker-cli"
+
+[project.scripts]
+saas-maker = "saas_maker.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/saas_maker"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/saas_maker/cli.py" = ["B008"]  # typer.Option in defaults is the typer idiom
