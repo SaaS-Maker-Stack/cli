@@ -29,7 +29,7 @@ from saas_maker.naming import Names
 
 ANCHOR_HELP = (
     "This project predates the generator anchors. Add the comment lines listed in "
-    "https://github.com/willywg/saas-maker#generator-anchors (or copy the reference "
+    "https://github.com/SaaS-Maker-Stack/saas-maker#generator-anchors (or copy the reference "
     "module by hand with the saas-maker-add-module skill)."
 )
 
