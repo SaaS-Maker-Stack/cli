@@ -26,7 +26,8 @@ def run_checks() -> list[Check]:
         ("uv", ["uv", "--version"], "https://docs.astral.sh/uv/"),
         ("node", ["node", "--version"], "Node 24 — https://nodejs.org (or nvm)"),
         ("npm", ["npm", "--version"], "comes with Node"),
-        ("psql", ["psql", "--version"], "PostgreSQL client (createdb) — optional"),
+        # The client on PATH (Homebrew libpq, Postgres.app…) — not the server version.
+        ("psql (client)", ["psql", "--version"], "PostgreSQL client (createdb) — optional"),
         ("git", ["git", "--version"], "https://git-scm.com"),
     ]
     checks = []
