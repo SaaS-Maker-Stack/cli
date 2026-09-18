@@ -71,15 +71,20 @@ def test_parse_status():
     assert status.default == "draft" and status.last == "done"
     assert status.ts_union == "'draft' | 'done'"
     assert status.py_values == '"draft", "done"'
-    assert "success" in status.badge_style(1)
+    assert "muted" in status.badge_style("draft") or "info" in status.badge_style("draft")
+    assert "success" in status.badge_style("done")
+    assert "destructive" in parse_status("ok,cancelled").badge_style("cancelled")
+    assert parse_status("weird,active").unmapped_values == ["weird"]
     with pytest.raises(FieldError):
         parse_status("only_one")
 
 
-def test_str_samples_are_unique_per_field():
-    fields = {f.name: f for f in parse_fields("name:str:Nombre,phone:str?:Teléfono,city:str")}
+def test_str_and_text_samples_are_unique_per_field():
+    spec = "name:str:Nombre,phone:str?:Teléfono,city:str,notes:text?:Notas,bio:text?"
+    fields = {f.name: f for f in parse_fields(spec)}
     samples = {f.ts_sample for f in fields.values()}
-    assert len(samples) == 3
+    assert len(samples) == 5
+    assert fields["notes"].ts_sample == "'Notas de prueba'"
     assert fields["name"].ts_sample == "'Nombre de prueba'"
     assert fields["name"].py_sample == '"Nombre de prueba"'
     assert fields["city"].test_typed == "City de prueba"

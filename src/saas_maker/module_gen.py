@@ -106,21 +106,37 @@ def insert_before_anchor(text: str, anchor: str, snippet: str, *, where: str) ->
 
 
 def _insert_sorted(text: str, pattern: str, new_line: str, *, where: str) -> str:
-    """Insert `new_line` into the run of consecutive lines matching `pattern`, sorted."""
+    """Insert `new_line` into the run of consecutive statements matching `pattern`, sorted.
+
+    A matching line that opens a parenthesised block (ends with `(`) is one statement
+    together with everything up to its closing `)`, so a new import never lands inside
+    a multi-line `from x import (...)`.
+    """
     lines = text.splitlines(keepends=True)
     rx = re.compile(pattern)
-    indices = [i for i, line in enumerate(lines) if rx.match(line)]
-    if not indices:
+    spans: list[tuple[int, int]] = []  # (start, end) inclusive, per statement
+    i = 0
+    while i < len(lines):
+        if rx.match(lines[i]):
+            end = i
+            if lines[i].rstrip().endswith("("):
+                while end < len(lines) - 1 and not lines[end].strip().startswith(")"):
+                    end += 1
+            spans.append((i, end))
+            i = end + 1
+        else:
+            i += 1
+    if not spans:
         raise ModuleGenError(f"could not find where to insert `{new_line.strip()}` in {where}")
-    run = [indices[0]]
-    for i in indices[1:]:
-        if i == run[-1] + 1:
-            run.append(i)
-    block = [lines[i] for i in run]
+    run = [spans[0]]
+    for span in spans[1:]:
+        if span[0] == run[-1][1] + 1:
+            run.append(span)
+    block = ["".join(lines[a : b + 1]) for a, b in run]
     if new_line + "\n" in block:
         return text
     block = sorted([*block, new_line + "\n"])
-    return "".join(lines[: run[0]]) + "".join(block) + "".join(lines[run[-1] + 1 :])
+    return "".join(lines[: run[0][0]]) + "".join(block) + "".join(lines[run[-1][1] + 1 :])
 
 
 def _add_to_import_line(text: str, prefix: str, name: str, *, where: str) -> str:

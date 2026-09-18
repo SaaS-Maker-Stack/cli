@@ -16,7 +16,10 @@ app.include_router(organizations.router, prefix="/organizations", tags=["organiz
 """
 
 MODELS_INIT = """from app.models.admin import AdminUser
-from app.models.tenant import Organization, User
+from app.models.tenant import (
+    Organization,
+    User,
+)
 
 __all__ = [
     "Organization",

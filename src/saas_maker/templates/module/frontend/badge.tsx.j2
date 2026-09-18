@@ -5,7 +5,7 @@ import type { {{ n.camel }}Status } from '@/types/api';
 // DESIGN.md → Badges: soft semantic tint (10% background), full-strength text, 6px dot.
 const statusStyles: Record<{{ n.camel }}Status, string> = {
 {% for v in status.values %}
-  {{ v.value }}: '{{ status.badge_style(loop.index0) }}',
+  {{ v.value }}: '{{ status.badge_style(v.value) }}',
 {% endfor %}
 };
 

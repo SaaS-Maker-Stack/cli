@@ -152,7 +152,7 @@ class Field:
 
     def _sample(self, i: int) -> str:
         """Sample values; `str` fields get a unique one so tests can `getByText` it."""
-        if self.kind == "str":
+        if self.kind in ("str", "text"):
             typed = f"{self.label} de prueba"
             return (json.dumps(typed, ensure_ascii=False), _ts_str(typed), typed)[i]
         return _SAMPLES[self.kind][i]
@@ -301,6 +301,30 @@ class Field:
         return f"'{self.test_typed}'"
 
 
+_BADGE_CLASSES = {
+    "muted": "bg-muted text-muted-foreground [&>span]:bg-muted-foreground",
+    "success": "bg-success/10 text-success [&>span]:bg-success",
+    "info": "bg-info/10 text-info [&>span]:bg-info",
+    "warning": "bg-warning/10 text-warning [&>span]:bg-warning",
+    "destructive": "bg-destructive/10 text-destructive [&>span]:bg-destructive",
+}
+
+# status value -> tone. Values not listed here render muted; the CLI asks to review them.
+BADGE_TONES = {
+    **dict.fromkeys(
+        ["active", "paid", "confirmed", "published", "done", "completed", "approved", "open"],
+        "success",
+    ),
+    **dict.fromkeys(
+        ["draft", "pending", "in_progress", "quoted", "new", "scheduled", "sent", "review"],
+        "info",
+    ),
+    **dict.fromkeys(["on_hold", "overdue", "expired", "warning", "partial"], "warning"),
+    **dict.fromkeys(["cancelled", "canceled", "failed", "rejected", "blocked"], "destructive"),
+    **dict.fromkeys(["archived", "inactive", "closed", "disabled"], "muted"),
+}
+
+
 @dataclass
 class StatusValue:
     value: str
@@ -331,15 +355,13 @@ class Status:
     def ts_enum(self) -> str:
         return ", ".join(f"'{v.value}'" for v in self.values)
 
-    def badge_style(self, index: int) -> str:
-        palette = [
-            "bg-muted text-muted-foreground [&>span]:bg-muted-foreground",
-            "bg-success/10 text-success [&>span]:bg-success",
-            "bg-info/10 text-info [&>span]:bg-info",
-            "bg-warning/10 text-warning [&>span]:bg-warning",
-            "bg-destructive/10 text-destructive [&>span]:bg-destructive",
-        ]
-        return palette[index % len(palette)]
+    def badge_style(self, value: str) -> str:
+        """Semantic tint for a status value, by meaning (see BADGE_TONES); muted otherwise."""
+        return _BADGE_CLASSES[BADGE_TONES.get(value, "muted")]
+
+    @property
+    def unmapped_values(self) -> list[str]:
+        return [v.value for v in self.values if v.value not in BADGE_TONES]
 
 
 def parse_fields(spec: str) -> list[Field]:

@@ -159,3 +159,20 @@ def test_alembic_head_detection(tmp_path: Path):
     (versions / "c.py").write_text("revision = 'c3'\ndown_revision = 'a1'\n")
     with pytest.raises(module_gen.ModuleGenError):
         module_gen.alembic_head(versions)
+
+
+def test_second_module_import_lands_outside_multiline_import(project: Path):
+    module_gen.generate(
+        Names.build("customer"), parse_fields("name:str"), None, cwd=project, echo=lambda *_: None
+    )
+    module_gen.generate(
+        Names.build("tour"), parse_fields("name:str"), None, cwd=project, echo=lambda *_: None
+    )
+    init = (project / "backend" / "app" / "models" / "__init__.py").read_text()
+    compile(init, "__init__.py", "exec")  # must stay valid Python
+    lines = init.splitlines()
+    i_customer = lines.index("from app.models.customer import Customer")
+    i_tenant = lines.index("from app.models.tenant import (")
+    i_tour = lines.index("from app.models.tour import Tour")
+    assert i_customer < i_tenant < i_tour
+    assert lines[i_tenant + 1 :].index(")") < i_tour - i_tenant  # tour import after the block

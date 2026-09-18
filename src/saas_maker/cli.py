@@ -155,6 +155,12 @@ def gen_module(
         typer.echo("  cd backend && make migrate && make test && make lint")
     if not backend_only:
         typer.echo("  cd frontend && npm run lint && npm run typecheck && npm test")
+    if parsed_status and not backend_only and parsed_status.unmapped_values:
+        unmapped = ", ".join(parsed_status.unmapped_values)
+        typer.echo(
+            f"  review the badge colors for {unmapped} in "
+            f"frontend/src/components/features/{names.kebab_plural}/{names.camel}StatusBadge.tsx"
+        )
     typer.echo(f"  document {names.api_prefix} in backend/CLAUDE.md and frontend/CLAUDE.md")
 
 
