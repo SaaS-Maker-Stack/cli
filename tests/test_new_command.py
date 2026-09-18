@@ -131,3 +131,13 @@ def test_env_renderers_are_deterministic():
     assert "POSTGRES_PASSWORD=pw" in backend and "JWT_SECRET_KEY=" + "x" * 64 in backend
     assert "SMTP_HOST=localhost" in backend  # dev mail goes to Mailpit
     assert "SMTP_TLS=true" in envfiles.render_backend_secrets(a, s)  # prod secrets differ
+
+
+def test_brand_colors_cover_the_default_hue():
+    from saas_maker import stack
+    from saas_maker.wizard import BRAND_COLORS
+
+    hues = [hue for _, hue in BRAND_COLORS]
+    assert stack.TEMPLATE_BRAND_HUE in hues
+    assert hues[-1] == "custom"
+    assert all(0 <= h <= 360 for h in hues if isinstance(h, int))

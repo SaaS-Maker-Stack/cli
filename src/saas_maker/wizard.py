@@ -11,6 +11,19 @@ import questionary
 
 from saas_maker import stack
 
+# Named brand colors -> OKLCH hue. The template's palette derives every accent
+# shade from this one angle (`--brand-hue` in frontend/src/index.css, DESIGN.md).
+BRAND_COLORS: list[tuple[str, int | str]] = [
+    ("indigo (default)", 265),
+    ("blue", 250),
+    ("teal", 185),
+    ("green", 145),
+    ("orange", 25),
+    ("rose", 350),
+    ("violet", 300),
+    ("custom hue 0-360", "custom"),
+]
+
 
 def display_name_from_slug(slug: str) -> str:
     """my-app -> My App (what generate-project.sh did)."""
@@ -87,12 +100,21 @@ class Answers:
 def _ask_project(a: Answers) -> None:
     a.display_name = questionary.text("Display name:", default=a.name).ask()
     a.slogan = questionary.text("Slogan (login page tagline):", default=a.slogan).ask()
-    hue = questionary.text(
-        "Brand hue 0-360 (25 orange, 145 green, 250 blue, 265 indigo, 300 violet):",
-        default=str(a.brand_hue),
-        validate=lambda v: v.isdigit() and int(v) <= 360 or "Enter a number between 0 and 360",
+    choice = questionary.select(
+        "Brand color (drives the whole accent palette — buttons, links, focus rings; "
+        "change it later in frontend/src/index.css):",
+        choices=[questionary.Choice(label, hue) for label, hue in BRAND_COLORS],
+        default=a.brand_hue if a.brand_hue in dict(BRAND_COLORS).values() else None,
     ).ask()
-    a.brand_hue = int(hue)
+    if choice == "custom":
+        hue = questionary.text(
+            "Hue angle 0-360 (0 red, 60 yellow, 120 green, 180 cyan, 240 blue, 300 magenta):",
+            default=str(a.brand_hue),
+            validate=lambda v: v.isdigit() and int(v) <= 360 or "Enter a number between 0 and 360",
+        ).ask()
+        a.brand_hue = int(hue)
+    else:
+        a.brand_hue = choice
 
 
 def _ask_postgres(a: Answers) -> None:
