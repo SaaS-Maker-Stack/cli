@@ -74,3 +74,12 @@ def test_parse_status():
     assert "success" in status.badge_style(1)
     with pytest.raises(FieldError):
         parse_status("only_one")
+
+
+def test_str_samples_are_unique_per_field():
+    fields = {f.name: f for f in parse_fields("name:str:Nombre,phone:str?:Teléfono,city:str")}
+    samples = {f.ts_sample for f in fields.values()}
+    assert len(samples) == 3
+    assert fields["name"].ts_sample == "'Nombre de prueba'"
+    assert fields["name"].py_sample == '"Nombre de prueba"'
+    assert fields["city"].test_typed == "City de prueba"

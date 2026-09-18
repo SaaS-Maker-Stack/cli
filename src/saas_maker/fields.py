@@ -12,6 +12,7 @@ Every code fragment the templates need per field lives here, so the Jinja
 templates stay flat.
 """
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -41,6 +42,11 @@ _SAMPLES = {
     "date": ('"2026-09-10"', "'2026-09-10'", "2026-09-10"),
     "datetime": ('"2026-09-10T10:00:00"', "'2026-09-10T10:00:00'", "2026-09-10T10:00"),
 }
+
+
+def _ts_str(value: str) -> str:
+    """A single-quoted TypeScript string literal."""
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 class FieldError(ValueError):
@@ -144,9 +150,16 @@ class Field:
         annot = "bool" if self.kind == "bool" else self.py_annot
         return f"{self.name}: {annot}"
 
+    def _sample(self, i: int) -> str:
+        """Sample values; `str` fields get a unique one so tests can `getByText` it."""
+        if self.kind == "str":
+            typed = f"{self.label} de prueba"
+            return (json.dumps(typed, ensure_ascii=False), _ts_str(typed), typed)[i]
+        return _SAMPLES[self.kind][i]
+
     @property
     def py_sample(self) -> str:
-        return _SAMPLES[self.kind][0]
+        return self._sample(0)
 
     # --- TypeScript ------------------------------------------------------
     @property
@@ -179,7 +192,7 @@ class Field:
 
     @property
     def ts_sample(self) -> str:
-        return _SAMPLES[self.kind][1]
+        return self._sample(1)
 
     @property
     def form_empty(self) -> str:
@@ -269,7 +282,7 @@ class Field:
     @property
     def test_typed(self) -> str:
         """What the frontend test types into this field's input."""
-        return _SAMPLES[self.kind][2]
+        return self._sample(2)
 
     @property
     def test_uses_type(self) -> bool:
