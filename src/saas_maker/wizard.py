@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import questionary
 
 from saas_maker import stack
+from saas_maker.color import parse_brand
 
 # Named brand colors -> OKLCH hue. The template's palette derives every accent
 # shade from this one angle (`--brand-hue` in frontend/src/index.css, DESIGN.md).
@@ -21,7 +22,7 @@ BRAND_COLORS: list[tuple[str, int | str]] = [
     ("orange", 25),
     ("rose", 350),
     ("violet", 300),
-    ("custom hue 0-360", "custom"),
+    ("custom (hex like #0066ff, or a hue 0-360)", "custom"),
 ]
 
 
@@ -97,6 +98,14 @@ class Answers:
         return self.pg_host in ("localhost", "127.0.0.1")
 
 
+def _valid_brand(value: str) -> bool | str:
+    try:
+        parse_brand(value)
+    except ValueError as exc:
+        return str(exc)
+    return True
+
+
 def _ask_project(a: Answers) -> None:
     a.display_name = questionary.text("Display name:", default=a.name).ask()
     a.slogan = questionary.text("Slogan (login page tagline):", default=a.slogan).ask()
@@ -107,12 +116,12 @@ def _ask_project(a: Answers) -> None:
         default=a.brand_hue if a.brand_hue in dict(BRAND_COLORS).values() else None,
     ).ask()
     if choice == "custom":
-        hue = questionary.text(
-            "Hue angle 0-360 (0 red, 60 yellow, 120 green, 180 cyan, 240 blue, 300 magenta):",
+        raw = questionary.text(
+            "Brand color as hex (#0066ff) or OKLCH hue angle 0-360:",
             default=str(a.brand_hue),
-            validate=lambda v: v.isdigit() and int(v) <= 360 or "Enter a number between 0 and 360",
+            validate=_valid_brand,
         ).ask()
-        a.brand_hue = int(hue)
+        a.brand_hue = parse_brand(raw)
     else:
         a.brand_hue = choice
 
