@@ -8,7 +8,7 @@ against unreleased branches.
 ORG = "SaaS-Maker-Stack"
 
 # Template ref this CLI release scaffolds. Bumped together with the CLI version.
-STACK_REF = "v0.1.0"
+STACK_REF = "v0.1.1"
 
 # target directory in the generated project -> GitHub repo name.
 SERVICES = {
