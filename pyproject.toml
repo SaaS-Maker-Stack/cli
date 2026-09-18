@@ -26,7 +26,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/SaaS-Maker-Stack/saas-maker"
-Repository = "https://github.com/SaaS-Maker-Stack/saas-maker-cli"
+Repository = "https://github.com/SaaS-Maker-Stack/cli"
 
 [project.scripts]
 saas-maker = "saas_maker.cli:app"

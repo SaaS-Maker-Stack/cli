@@ -12,9 +12,9 @@ STACK_REF = "v0.1.0"
 
 # target directory in the generated project -> GitHub repo name.
 SERVICES = {
-    "backend": "saas-maker-backend",
-    "frontend": "saas-maker-frontend",
-    "admin": "saas-maker-admin",
+    "backend": "backend",
+    "frontend": "frontend",
+    "admin": "admin",
 }
 
 # The parent repo contributes root files to the generated project.
