@@ -1,6 +1,6 @@
 [project]
 name = "saas-maker"
-version = "0.1.2"
+version = "0.2.0"
 description = "SaaS Maker generator — `uvx saas-maker new <name>`: a multi-tenant SaaS (FastAPI + React) in one command, plus `generate module` for tenant-scoped CRUDs"
 readme = "README.md"
 license = "Apache-2.0"
