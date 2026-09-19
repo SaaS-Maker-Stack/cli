@@ -129,6 +129,21 @@ async def test_validation(client: AsyncClient, owner_tokens: dict):
         await client.post(PREFIX, json=_payload(status="weird"), headers=headers)
     ).status_code == 422
 {% endif %}
+{% if first_choice %}
+    assert (
+        await client.post(PREFIX, json=_payload({{ first_choice.name }}="weird"), headers=headers)
+    ).status_code == 422
+{% endif %}
+{% for f in fields if f.kind == 'money' %}
+{% if loop.first %}
+    assert (
+        await client.post(PREFIX, json=_payload({{ f.name }}=-1), headers=headers)
+    ).status_code == 422
+    assert (
+        await client.post(PREFIX, json=_payload({{ f.name }}=10.999), headers=headers)
+    ).status_code == 422
+{% endif %}
+{% endfor %}
     assert (await client.get(f"{PREFIX}/not-a-uuid", headers=headers)).status_code == 422
     assert (await client.get(f"{PREFIX}/{uuid.uuid4()}", headers=headers)).status_code == 404
 

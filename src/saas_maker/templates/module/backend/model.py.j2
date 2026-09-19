@@ -7,8 +7,11 @@ missing one (404).
 
 import uuid
 from datetime import {{ 'date, ' if has_date else '' }}datetime
+{% if has_money %}
+from decimal import Decimal
+{% endif %}
 
-from sqlalchemy import Column{{ ', Text' if has_text else '' }}
+from sqlalchemy import {{ sa_imports }}
 from sqlalchemy import ForeignKey as SAForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlmodel import Field, SQLModel

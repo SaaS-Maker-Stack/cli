@@ -1,0 +1,11 @@
+import type { {% for f in choices %}{{ f.choice_alias }}{{ ', ' if not loop.last }}{% endfor %} } from '@/types/api';
+{% for f in choices %}
+
+export const {{ f.labels_name }}: Record<{{ f.choice_alias }}, string> = {
+{% for c in f.choices %}
+  {{ c.value }}: '{{ c.label }}',
+{% endfor %}
+};
+
+export const {{ f.options_name }} = Object.keys({{ f.labels_name }}) as {{ f.choice_alias }}[];
+{% endfor %}

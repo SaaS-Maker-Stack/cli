@@ -18,7 +18,7 @@ import re
 import secrets
 import shutil
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 
@@ -207,12 +207,19 @@ def alembic_head(versions_dir: Path) -> str:
 
 
 def build_context(n: Names, fields: list[Field], status: Status | None) -> dict:
+    fields = [replace(f, prefix=n.camel) for f in fields]  # namespaces the choice aliases
     title = fields[0]
     subtitle = next((f for f in fields[1:] if f.kind == "text" and f.optional), None)
     responsive = ["hidden sm:table-cell", "hidden md:table-cell", "hidden lg:table-cell"]
     candidates = [f for f in fields[1:] if f is not subtitle and f.kind != "text"][:3]
     columns = [Column(f, responsive[i]) for i, f in enumerate(candidates)]
     kinds = {f.kind for f in fields}
+    choices = [f for f in fields if f.kind == "choice"]
+    sa_imports = (
+        ["Column"]
+        + (["Numeric"] if "money" in kinds else [])
+        + (["Text"] if "text" in kinds else [])
+    )
     return {
         "n": n,
         "fields": fields,
@@ -220,14 +227,23 @@ def build_context(n: Names, fields: list[Field], status: Status | None) -> dict:
         "subtitle": subtitle,
         "columns": columns,
         "status": status,
+        "choices": choices,
+        "choice_columns": [c.field for c in columns if c.field.kind == "choice"],
+        "optional_choices": [f for f in choices if f.optional],
+        "first_choice": choices[0] if choices else None,
         "has_text": "text" in kinds,
         "has_date": "date" in kinds,
+        "has_money": "money" in kinds,
+        "has_choice": bool(choices),
+        "sa_imports": ", ".join(sa_imports),
         "has_datetime_col": any(c.field.kind == "datetime" for c in columns),
+        "has_money_col": any(c.field.kind == "money" for c in columns),
         "uses_pyd_field": any(f.uses_pydantic_field for f in fields),
-        "has_input": any(f.kind != "text" and f.kind != "bool" for f in fields),
+        "has_input": any(f.kind not in ("text", "bool", "choice") for f in fields),
         "has_textarea": "text" in kinds,
         "has_checkbox": "bool" in kinds,
-        "required_extra": [f for f in fields[1:] if not f.optional and f.kind != "bool"],
+        "has_select": bool(status) or bool(choices),
+        "required_extra": [f for f in fields[1:] if not f.has_form_default],
         "needs_fire_event": any(
             not f.optional and f.kind in ("int", "float", "date", "datetime") for f in fields[1:]
         ),
@@ -240,6 +256,9 @@ def plan_backend(backend: Path, ctx: dict) -> Plan:
     app = backend / "app"
     plan.add_new(app / "models" / f"{n.snake}.py", _render("backend/model.py.j2", ctx))
     plan.add_new(app / "schemas" / f"{n.snake}.py", _render("backend/schemas.py.j2", ctx))
+    money_py = app / "schemas" / "money.py"
+    if ctx["has_money"] and not money_py.exists():
+        plan.add_new(money_py, _render("backend/money.py.j2", ctx))
     plan.add_new(app / "services" / f"{n.snake}_service.py", _render("backend/service.py.j2", ctx))
     plan.add_new(
         app / "controllers" / f"{n.plural_snake}.py", _render("backend/controller.py.j2", ctx)
@@ -309,6 +328,8 @@ def plan_frontend(frontend: Path, ctx: dict) -> Plan:
     if status:
         plan.add_new(features / "status.ts", _render("frontend/status.ts.j2", ctx))
         plan.add_new(features / f"{n.camel}StatusBadge.tsx", _render("frontend/badge.tsx.j2", ctx))
+    if ctx["has_choice"]:
+        plan.add_new(features / "choices.ts", _render("frontend/choices.ts.j2", ctx))
     plan.add_new(features / f"{n.camel}List.tsx", _render("frontend/list.tsx.j2", ctx))
     plan.add_new(features / f"{n.camel}FormDialog.tsx", _render("frontend/form_dialog.tsx.j2", ctx))
     plan.add_new(

@@ -4,6 +4,10 @@
 export type {{ n.camel }}Status = {{ status.ts_union }};
 
 {% endif %}
+{% for f in choices %}
+export type {{ f.choice_alias }} = {{ f.ts_choice_union }};
+
+{% endfor %}
 export interface {{ n.camel }}Response {
   id: string;
 {% for f in fields %}

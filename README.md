@@ -14,15 +14,21 @@ uvx saas-maker new my-saas --skip-provision
 cd my-saas
 uvx saas-maker generate module invoice \
   --label Factura --label-plural Facturas --feminine \
-  --fields "number:str:Número,amount:float:Monto,notes:text?:Notas,due:date?:Vence" \
+  --fields "number:str:Número,amount:money:Monto,kind:choice(sale=Venta|refund=Devolución):Tipo,notes:text?:Notas,due:date?:Vence" \
   --status "draft=Borrador,sent=Enviada,paid=Pagada"
 ```
 
 ## `generate module`
 
-- `--fields "name:kind[?][:Label],…"` — kinds `str text int float bool date datetime`;
-  `?` = optional. The first field must be a required `str`: it is the title,
-  the searchable column and the delete confirmation.
+- `--fields "name:kind[?][:Label],…"` — kinds `str text int float money bool date
+  datetime choice(value=Label|…)`; `?` = optional. The first field must be a
+  required `str`: it is the title, the searchable column and the delete confirmation.
+  - `money` → `Numeric(14, 2)` + `Decimal` (`ge=0`, two decimals) on the backend,
+    a JSON number in the API (`app/schemas/money.py`, created once per project),
+    a decimal input and an `Intl.NumberFormat` cell on the frontend.
+  - `choice(a=Label A|b=Label B)` → `Literal` in the schemas (422 on anything else),
+    a `<Select>` in the form, the label in the table (`features/<plural>/choices.ts`).
+    Optional choices add a "Sin especificar" option.
 - `--status "value=Label,…"` — adds a status column, list filter and badge.
 - `--label / --label-plural / --feminine` — Spanish UI copy ("Nueva factura").
 - Without `--fields` the command asks; `--defaults` skips the questions.

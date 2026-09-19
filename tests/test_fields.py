@@ -53,7 +53,13 @@ def test_field_labels_default_to_humanized_names():
         "name:str?",  # first must be required
         "id:str",  # reserved
         "name:str,name:str",  # duplicate
-        "name:str,x:money",  # unknown kind
+        "name:str,x:uuid",  # unknown kind
+        "name:str,kind:choice",  # choice needs options
+        "name:str,kind:choice(only_one)",  # at least two
+        "name:str,kind:choice(a=A|a=B)",  # duplicate option
+        "name:str,kind:choice(Bad Value=A|b=B)",  # snake_case options
+        "name:str,qty:int(1|2)",  # options only for choice
+        "name:choice(a|b)",  # first must be str
         "Name:str",  # not snake_case
         "name:str:Nombre:extra",
     ],
@@ -88,3 +94,77 @@ def test_str_and_text_samples_are_unique_per_field():
     assert fields["name"].ts_sample == "'Nombre de prueba'"
     assert fields["name"].py_sample == '"Nombre de prueba"'
     assert fields["city"].test_typed == "City de prueba"
+
+
+def test_choice_kind_parses_options_and_renders_a_select():
+    spec = (
+        "name:str,doc:choice(national_id=Documento nacional|passport=Pasaporte)?:Documento,"
+        "kind:choice(person|company=Empresa):Tipo"
+    )
+    fields = {f.name: f for f in parse_fields(spec)}
+    doc, kind = fields["doc"], fields["kind"]
+    assert [(c.value, c.label) for c in doc.choices] == [
+        ("national_id", "Documento nacional"),
+        ("passport", "Pasaporte"),
+    ]
+    assert [(c.value, c.label) for c in kind.choices] == [
+        ("person", "Person"),
+        ("company", "Empresa"),
+    ]
+    assert doc.optional and not kind.optional
+
+    doc.prefix = kind.prefix = "Customer"
+    assert doc.choice_alias == "CustomerDoc"
+    assert doc.model_line == "doc: str | None = Field(default=None, max_length=50, nullable=True)"
+    assert doc.migration_column == "sa.Column('doc', sa.String(length=50), nullable=True)"
+    assert doc.create_line == "doc: CustomerDoc | None = None"
+    assert kind.create_line == "kind: CustomerKind"
+    assert kind.response_line == "kind: CustomerKind"
+    assert kind.py_choices == '"person", "company"'
+    assert kind.py_sample == '"person"' and kind.ts_sample == "'person'"
+
+    assert kind.ts_type == "CustomerKind" and doc.ts_type == "CustomerDoc | null"
+    assert kind.ts_choice_union == "'person' | 'company'"
+    assert kind.zod == "z.enum(['person', 'company'])"
+    assert doc.zod == "z.enum([NONE, 'national_id', 'passport'])"
+    assert kind.form_empty == "'person'" and doc.form_empty == "NONE"
+    assert doc.to_form_expr("item") == "item.doc ?? NONE"
+    assert doc.to_payload_expr("data") == "data.doc === NONE ? null : data.doc"
+    assert kind.cell_jsx("item") == "{kindLabels[item.kind]}"
+    assert doc.cell_jsx("item") == "{item.doc ? docLabels[item.doc] : '—'}"
+    assert kind.has_form_default and kind.test_expected == "'person'"
+    assert doc.test_expected == "null"
+
+
+def test_money_kind_is_decimal_on_the_backend_and_a_number_in_the_api():
+    fields = {f.name: f for f in parse_fields("name:str,price:money:Precio,fee:money?")}
+    price, fee = fields["price"], fields["fee"]
+    assert price.model_line == (
+        "price: Decimal = Field(sa_column=Column(Numeric(14, 2), nullable=False))"
+    )
+    assert "Numeric(14, 2), nullable=True" in fee.model_line
+    assert price.migration_column == (
+        "sa.Column('price', sa.Numeric(precision=14, scale=2), nullable=False)"
+    )
+    assert price.create_line == "price: Price"
+    assert fee.create_line == "fee: Price | None = None"
+    assert price.update_line == "price: Price | None = None"
+    assert price.response_line == "price: PriceOut"
+    assert fee.response_line == "fee: PriceOut | None"
+
+    assert price.ts_type == "number" and fee.ts_create_line == "fee?: number | null;"
+    assert price.zod.startswith("z.string().trim().min(1, 'Requerido').regex(")
+    assert fee.zod.startswith("z.string().trim().regex(/^(")
+    assert price.input_jsx == (
+        '<Input inputMode="decimal" placeholder="0.00" autoComplete="off" {...field} />'
+    )
+    assert price.to_payload_expr("data") == "Number(data.price.trim().replace(',', '.'))"
+    assert fee.to_payload_expr("data") == (
+        "data.fee.trim() === '' ? null : Number(data.fee.trim().replace(',', '.'))"
+    )
+    assert price.to_form_expr("item") == "String(item.price)"
+    assert price.cell_jsx("item") == "{moneyFormatter.format(item.price)}"
+    assert fee.cell_jsx("item") == "{item.fee === null ? '—' : moneyFormatter.format(item.fee)}"
+    assert price.cell_class == "tabular-nums"
+    assert price.test_uses_type and price.test_typed == "99.90" and price.test_expected == "99.9"
+    assert fee.test_expected == "null"

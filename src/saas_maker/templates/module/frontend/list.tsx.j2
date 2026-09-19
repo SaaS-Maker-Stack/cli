@@ -16,6 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+{% if choice_columns %}
+import { {% for f in choice_columns %}{{ f.labels_name }}{{ ', ' if not loop.last }}{% endfor %} } from './choices';
+{% endif %}
 {% if status %}
 import { {{ n.camel }}StatusBadge } from './{{ n.camel }}StatusBadge';
 {% endif %}
@@ -40,6 +43,10 @@ interface {{ n.camel }}ListProps {
 const dateFormatter = new Intl.DateTimeFormat('es', { dateStyle: 'medium' });
 {% if has_datetime_col %}
 const dateTimeFormatter = new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' });
+{% endif %}
+{% if has_money_col %}
+// Amount only: the currency (if any) is the module's business rule
+const moneyFormatter = new Intl.NumberFormat('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 {% endif %}
 
 /**

@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-{% if status %}
+{% if has_select %}
 import {
   Select,
   SelectContent,
@@ -39,10 +39,18 @@ import {
 } from '@/components/ui/select';
 {% endif %}
 import { use{{ n.camel_plural }} } from '@/hooks/use{{ n.camel_plural }}';
+{% if has_choice %}
+import { {% for f in choices %}{{ f.labels_name }}, {{ f.options_name }}{{ ', ' if not loop.last }}{% endfor %} } from './choices';
+{% endif %}
 {% if status %}
 import { {{ n.lower_camel }}StatusLabels, {{ n.lower_camel }}Statuses } from './status';
 {% endif %}
 import type { {{ n.camel }}Create, {{ n.camel }}Response } from '@/types/api';
+{% if optional_choices %}
+
+// Radix Select cannot hold an empty value, so "no choice" is a sentinel
+const NONE = '__none__';
+{% endif %}
 
 const formSchema = z.object({
 {% for f in fields %}
@@ -150,6 +158,34 @@ export function {{ n.camel }}FormDialog({ open, onOpenChange, item }: {{ n.camel
                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                   <FormLabel className="font-normal">{{ f.label }}</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{% elif f.kind == 'choice' %}
+            <FormField
+              control={form.control}
+              name="{{ f.name }}"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{{ f.label }}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una opción" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+{% if f.optional %}
+                      <SelectItem value={NONE}>Sin especificar</SelectItem>
+{% endif %}
+                      {{ '{' }}{{ f.options_name }}.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {{ '{' }}{{ f.labels_name }}[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

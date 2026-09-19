@@ -100,8 +100,8 @@ def gen_module(
     fields: str | None = typer.Option(
         None,
         "--fields",
-        help="name:kind[?][:Label],… — kinds: str text int float bool date datetime. "
-        "First field is the title. Default: " + fields_mod.DEFAULT_FIELDS,
+        help="name:kind[?][:Label],… — kinds: str text int float money bool date datetime "
+        "choice(a=Label|b=Label). First field is the title. Default: " + fields_mod.DEFAULT_FIELDS,
     ),
     status: str | None = typer.Option(
         None, "--status", help="value=Label,… adds a status column, filter and badge."

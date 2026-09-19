@@ -211,8 +211,8 @@ def run_module_wizard(name: str, default_fields: str) -> dict:
         'Is the label feminine? ("Nueva factura" vs "Nuevo proyecto")', default=False
     ).ask()
     fields = questionary.text(
-        "Fields — name:kind[?][:Label], kinds: str text int float bool date datetime "
-        "(first one is the title):",
+        "Fields — name:kind[?][:Label], kinds: str text int float money bool date datetime "
+        "choice(a=Label|b=Label) (first one is the title):",
         default=default_fields,
     ).ask()
     status = questionary.text(

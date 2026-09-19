@@ -176,3 +176,71 @@ def test_second_module_import_lands_outside_multiline_import(project: Path):
     i_tour = lines.index("from app.models.tour import Tour")
     assert i_customer < i_tenant < i_tour
     assert lines[i_tenant + 1 :].index(")") < i_tour - i_tenant  # tour import after the block
+
+
+def test_choice_and_money_fields_render_on_both_sides(project: Path):
+    _generate(
+        project,
+        "tour",
+        "name:str:Nombre,base_price:money:Precio,deposit:money?:Depósito,"
+        "kind:choice(activity=Actividad|package=Paquete):Tipo,"
+        "level:choice(easy=Fácil|hard=Difícil)?:Nivel",
+    )
+    backend, frontend = project / "backend", project / "frontend/src"
+
+    money_py = backend / "app/schemas/money.py"
+    assert "Price = Annotated[Decimal" in money_py.read_text()
+    model = (backend / "app/models/tour.py").read_text()
+    assert "from decimal import Decimal" in model
+    assert "from sqlalchemy import Column, Numeric" in model
+    assert "base_price: Decimal = Field(sa_column=Column(Numeric(14, 2), nullable=False))" in model
+    assert "kind: str = Field(max_length=50, nullable=False)" in model
+    schemas = (backend / "app/schemas/tour.py").read_text()
+    assert "from typing import Literal" in schemas
+    assert "from app.schemas.money import Price, PriceOut" in schemas
+    assert 'TourKind = Literal["activity", "package"]' in schemas
+    assert 'TourLevel = Literal["easy", "hard"]' in schemas
+    assert "    kind: TourKind\n" in schemas and "    level: TourLevel | None = None" in schemas
+    assert "    base_price: PriceOut\n" in schemas and "    deposit: PriceOut | None" in schemas
+    migration = next((backend / "alembic/versions").glob("*_add_tours_table.py")).read_text()
+    assert "sa.Column('base_price', sa.Numeric(precision=14, scale=2), nullable=False)" in migration
+    assert "sa.Column('level', sa.String(length=50), nullable=True)" in migration
+    test = (backend / "tests/test_tours.py").read_text()
+    assert '"kind": "activity",' in test and '"base_price": 99.9,' in test
+    assert 'json=_payload(kind="weird")' in test and "json=_payload(base_price=-1)" in test
+
+    types = (frontend / "types/api.ts").read_text()
+    assert "export type TourKind = 'activity' | 'package';" in types
+    assert "  kind: TourKind;\n" in types and "  level: TourLevel | null;\n" in types
+    assert "  base_price: number;\n" in types
+    choices = (frontend / "components/features/tours/choices.ts").read_text()
+    assert "export const kindLabels: Record<TourKind, string> = {\n  activity: 'Actividad'," in (
+        choices
+    )
+    assert "export const levelOptions = Object.keys(levelLabels) as TourLevel[];" in choices
+    dialog = (frontend / "components/features/tours/TourFormDialog.tsx").read_text()
+    assert "const NONE = '__none__';" in dialog
+    assert "import { kindLabels, kindOptions, levelLabels, levelOptions } from './choices';" in (
+        dialog
+    )
+    assert "kind: z.enum(['activity', 'package'])," in dialog
+    assert "level: z.enum([NONE, 'easy', 'hard'])," in dialog
+    assert "<SelectItem value={NONE}>Sin especificar</SelectItem>" in dialog
+    assert "{kindOptions.map((value) => (" in dialog
+    assert "base_price: Number(data.base_price.trim().replace(',', '.'))," in dialog
+    assert dialog.count("SelectTrigger>") == 4  # two selects, no status
+    lst = (frontend / "components/features/tours/TourList.tsx").read_text()
+    assert "import { kindLabels } from './choices';" in lst
+    assert "const moneyFormatter = new Intl.NumberFormat('es'" in lst
+    assert "{moneyFormatter.format(item.base_price)}" in lst
+    assert "{kindLabels[item.kind]}" in lst
+    page_test = (frontend / "pages/ToursPage.test.tsx").read_text()
+    assert "await userEvent.type(screen.getByLabelText('Precio'), '99.90');" in page_test
+    assert (
+        "      base_price: 99.9,\n      deposit: null,\n      kind: 'activity',\n      level: null,"
+        in page_test
+    )
+
+    # A second module reuses money.py instead of failing on "already exists"
+    _generate(project, "fee", "name:str,amount:money")
+    assert "Price" in money_py.read_text()
